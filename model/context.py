@@ -40,6 +40,11 @@ class Context:
             return True
         return False
 
+    def is_stopped(self):
+        if self.stop_event.is_set():
+            return True
+        return False
+
     def push_message(self, msg_type, payload):
         self.queue.put((msg_type, payload))
 
