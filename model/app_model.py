@@ -31,11 +31,4 @@ class Model:
         self.exporter = XlsExporter()
         self.engine = ScraperEngine()
 
-    def stop(self):
-        self.stop_event.set()
 
-    def _stopped(self, output_queue):
-        if self.stop_event.is_set():
-            output_queue.put(("finish", "stopped"))
-            return True
-        return False

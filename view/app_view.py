@@ -72,6 +72,7 @@ class View(ct.CTk):
 
         # Buttons
         self.scrape_button = ct.CTkButton(self.config_frame, text="Run Scraper")
+        self.scrape_button_default_color = self.scrape_button.cget("fg_color")
         self.scrape_button.grid(row=13, column=0, padx=20, pady=10)
 
         self.export_button = ct.CTkButton(self.config_frame, text="Export to Excel", fg_color="green", state="disabled")

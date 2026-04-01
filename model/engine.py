@@ -19,6 +19,7 @@ class ScraperEngine:
 
     def run(self, steps, base_url, browser: SeleniumDriver, ctx:Context):
         self.stop_flag = False
+        ctx.stop_event.clear()
         current_url = base_url
         ctx.push_message("info", f"--- Starting Job on {current_url} ---")
 

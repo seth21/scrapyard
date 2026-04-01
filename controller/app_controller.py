@@ -40,7 +40,7 @@ class Controller:
         else:
             self.view.log_type_message("warning", "Stopping scraper!")
             self.view.scrape_button.configure(state="disabled")
-            self.model.stop()
+            self.context.stop()
 
     def export_data(self):
         data = self.model.engine.results
@@ -49,6 +49,11 @@ class Controller:
     def _run_thread(self, steps, url):
         data = self.model.engine.run(steps, url, self.model.driver, self.context)
         self.scraped_data = data  # Store for export
-        self.view.scrape_button.configure(state="normal")
+        self.view.scrape_button.configure(
+            text="Run Scraper",
+            fg_color=self.view.scrape_button_default_color,
+            state="normal"
+        )
+        self.running = False
         if data:
             self.view.export_button.configure(state="normal")
