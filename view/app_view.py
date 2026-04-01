@@ -56,6 +56,9 @@ class View(ct.CTk):
         self.visit_click_button = ct.CTkButton(self.config_frame, text="+ Click Button", fg_color="#006400",
                                               command=lambda: self.add_node("click"))
         self.visit_click_button.grid(row=8, column=0, padx=20, pady=(0, 10), sticky="ew")
+        self.ensure_auth_button = ct.CTkButton(self.config_frame, text="+ Ensure Auth", fg_color="#8b4513",
+                                               command=lambda: self.add_node("ensure_auth"))
+        self.ensure_auth_button.grid(row=8, column=0, padx=20, pady=(0, 10), sticky="ew")
         self.scroll_button = ct.CTkButton(self.config_frame, text="+ Scroll Button", fg_color="#45818e",
                                                command=lambda: self.add_node("scroll"))
         self.scroll_button.grid(row=9, column=0, padx=20, pady=(0, 10), sticky="ew")
@@ -152,6 +155,10 @@ class View(ct.CTk):
             self.create_prop_dropdown("Wait strategy:", "wait_strategy", data, values=["dom_change", "height_change", "none"],
                                       change_callback=None)
             self.create_prop_entry("Wait timeout:", "wait_timeout", data)
+        if data['type'] == 'ensure_auth':
+            self.create_prop_entry("Login URL (optional):", "login_url", data)
+            self.create_prop_entry("Success Selector (optional):", "success_selector", data)
+            self.create_prop_entry("Cookie Name (optional):", "cookie_name", data)
 
     def create_prop_entry(self, label_text, key, data_dict):
         """Helper to create a label + entry that auto-updates the dictionary"""
@@ -215,7 +222,7 @@ class View(ct.CTk):
             parent_id = self.root_id
 
         # Insert Item
-        text_map = {"extract": "📄 Extract Data", "loop": " ↩️ For Each Element", "visit": "🔗 Visit Link", "repeat": "🔁 Repeat", "click": "👇 Click", "scroll": "⚙ Scroll"}
+        text_map = {"extract": "📄 Extract Data", "loop": " ↩️ For Each Element", "visit": "🔗 Visit Link", "repeat": "🔁 Repeat", "click": "👇 Click", "scroll": "⚙ Scroll", "ensure_auth": "🔐 Ensure Auth"}
         new_id = self.tree.insert(parent_id, "end", text=text_map[step_type], open=True)
 
         # Default Data
@@ -290,6 +297,10 @@ class View(ct.CTk):
                 step_config['wait_strategy'] = data.get('wait_strategy', 'dom_change')
                 step_config['wait_timeout'] = data.get('wait_timeout', 5)
                 step_config['mode'] = data.get('mode', 'bottom')
+            if data['type'] == 'ensure_auth':
+                step_config['login_url'] = data.get('login_url', '')
+                step_config['success_selector'] = data.get('success_selector', '')
+                step_config['cookie_name'] = data.get('cookie_name', '')
             steps.append(step_config)
         return steps
 

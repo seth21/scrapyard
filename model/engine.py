@@ -15,11 +15,12 @@ class ScraperEngine:
         self.current_row = {}
         self.results = []  # Final data list
         self.stop_flag = False
-        #self.active_soup = None
+        self.current_url = None
 
     def run(self, steps, base_url, browser: SeleniumDriver, ctx:Context):
         self.stop_flag = False
         ctx.stop_event.clear()
+        self.current_url = base_url
         current_url = base_url
         ctx.push_message("info", f"--- Starting Job on {current_url} ---")
 

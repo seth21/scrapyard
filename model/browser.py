@@ -10,7 +10,11 @@ from model.context import Context
 class SeleniumDriver:
     def __init__(self, headless=True):
         self.driver = None
+        self._headless = headless
         self.start_driver(headless)
+
+    def is_headless(self):
+        return self._headless
 
     def start_driver(self, headless=True):
         if not self.driver:
@@ -24,8 +28,29 @@ class SeleniumDriver:
                 "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
             )
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option("useAutomationExtension", False)
+            options.add_argument("--disable-blink-features=AutomationControlled")
 
             self.driver = webdriver.Chrome(options=options)
+            self._stealth_browser()
+
+    def _stealth_browser(self):
+        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+                Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+                const getParameter = WebGLRenderingContext.getParameter;
+                WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                    if (parameter === 37445) return 'Intel Open Source Technology Center';
+                    if (parameter === 37446) return 'Mesa DRI Intel(R) Ivybridge Mobile';
+                    return getParameter(parameter);
+                };
+                window.navigator.chrome = { runtime: {} };
+                window.navigator.permissions = { query: (x) => Promise.resolve({ state: Notification.permission }) };
+            """
+        })
 
     def stop_driver(self):
         if self.driver:
@@ -33,6 +58,18 @@ class SeleniumDriver:
                 self.driver.quit()
             finally:
                 self.driver = None
+
+    def switch_to_visible(self):
+        if self.driver and self._headless:
+            self.stop_driver()
+            self._headless = False
+            self.start_driver(headless=False)
+
+    def switch_to_headless(self):
+        if self.driver and not self._headless:
+            self.stop_driver()
+            self._headless = True
+            self.start_driver(headless=True)
 
     def _wait_for_dom_stability(self, drv, timeout=5, interval=0.5):
         end_time = time.time() + timeout
