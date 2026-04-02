@@ -131,6 +131,7 @@ class View(ct.CTk):
             self.create_prop_checkbox("Multi-Mode:", "multi", data)
             self.create_prop_entry("Multi-Separator (opt):", "sep", data)
             self.create_prop_checkbox("Preserve formatting:", "formatting", data)
+            self.create_prop_checkbox("Discard Duplicates:", "discard_duplicates", data)
         if data['type'] == 'loop':
             self.create_prop_entry("Limit:", "limit", data)
         if data['type'] == 'repeat':
@@ -284,6 +285,7 @@ class View(ct.CTk):
                 step_config['sep'] = data.get('sep', ',')
                 step_config['multi'] = data.get('multi', 0)
                 step_config['formatting'] = data.get('formatting', 0)
+                step_config['discard_duplicates'] = data.get('discard_duplicates', 0)
             if data['type'] == 'repeat':
                 step_config['mode'] = data.get('mode', 'fixed')
                 step_config['max_iter'] = data.get('max_iter', 0)

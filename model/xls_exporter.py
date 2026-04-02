@@ -12,6 +12,10 @@ class XlsExporter():
         if not scraped_data:
             return
 
+        # Remove internal _skip_restore column before export
+        for row in scraped_data:
+            row.pop('_skip_restore', None)
+
         #Ask user where to save
         file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")])
         if file_path:

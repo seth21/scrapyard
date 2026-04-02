@@ -42,6 +42,7 @@ Scrapyard is a general-purpose web crawler/scraper application that provides a v
 - **Headless/Visible Modes**: Switch between headless for speed and visible for debugging
 - **Real-time Logging**: See scraping progress in the built-in console
 - **Excel Export**: Export scraped data to `.xlsx` format
+- **Deduplication**: Built-in option to skip duplicate data during extraction
 - **Thread-Safe Execution**: Runs scraping in background thread, UI remains responsive
 
 ## Requirements
@@ -107,6 +108,7 @@ Extract data from the current page or element.
 | `multi` | Extract multiple values instead of just the first |
 | `sep` | Separator for multi-mode (default: comma) |
 | `formatting` | Preserve newlines in extracted text |
+| `discard_duplicates` | Skip extracting duplicate content (text) or URLs (links) |
 
 ### Loop
 
@@ -236,6 +238,27 @@ Scraped data is exported to Excel format (.xlsx):
 1. Click "Export to Excel" after scraping completes
 2. Choose a save location in the file dialog
 3. Data is exported with columns: `Source URL`, `Extracted Data`
+
+### Handling Infinite Scroll
+
+For pages with infinite scroll (loading more content as you scroll), use the `Repeat` node with `Scroll` and `Extract` nodes:
+
+```
+START
+└── Repeat (mode: exists or fixed)
+    ├── Scroll (mode: bottom)
+    └── Extract (Discard Duplicates: checked)
+```
+
+**How it works:**
+- The `Discard Duplicates` option tracks extracted content using content hashes (for text) or URLs (for links)
+- Each unique item is extracted once; duplicates are silently skipped
+- Empty rows (from duplicates) are automatically filtered out from the final results
+- Each Extract node has independent deduplication tracking
+
+**Tips:**
+- Use `multi` mode to extract multiple values at once
+- Check the console log for `[duplicate skipped]` messages to verify deduplication is working
 
 ## Architecture
 

@@ -60,7 +60,7 @@ class ScraperEngine:
                 # DO NOT refresh, or we lose our place in the list.
                 current_soup = context_soup
             action_type = step_config.get('type')
-            print(browser.driver.page_source)
+            # print(browser.driver.page_source)
             # 1. Get the correct class (e.g., ExtractAction)
             NodeClass = get_node_class(action_type)
 
@@ -92,7 +92,10 @@ class ScraperEngine:
 
         # If no loops ran, WE are the leaf. Return the single row we built.
         # We wrap it in a list to maintain consistency (always return List[dict])
+        # Only return row if it has at least one non-empty value (ignoring internal fields)
         elif local_data:
-            return [local_data]
+            data_to_check = {k: v for k, v in local_data.items() if k != '_skip_restore'}
+            if any(v for v in data_to_check.values() if v):
+                return [local_data]
 
         return []
