@@ -48,7 +48,28 @@ class EnsureAuthNode(BaseNode):
             context.push_message("info", "EnsureAuth: Existing session is valid")
             return None
 
-        context.push_message("warning", "EnsureAuth: Session invalid or expired, manual login required")
+        if not success_selector and cookies_loaded:
+            context.push_message("info", "EnsureAuth: No success selector configured, switching to visible to verify...")
+            if browser.is_headless():
+                context.push_message("info", "EnsureAuth: Switching to visible browser for verification")
+                browser.switch_to_visible()
+                browser.visit_page(target_url, context)
+                time.sleep(0.5)
+                self._try_load_cookies(browser, cookie_file, context)
+                browser.visit_page(target_url, context)
+            context.push_message("info", "EnsureAuth: Please verify login status in the browser")
+            if self._ask_user_auth_status(context):
+                context.push_message("info", "EnsureAuth: User confirmed already logged in")
+                context.push_message("info", "EnsureAuth: Switching back to headless mode")
+                browser.switch_to_headless()
+                browser.visit_page(target_url, context)
+                time.sleep(0.5)
+                self._try_load_cookies(browser, cookie_file, context)
+                browser.visit_page(target_url, context)
+                return None
+            context.push_message("warning", "EnsureAuth: User reported not logged in")
+        else:
+            context.push_message("warning", "EnsureAuth: Session invalid or expired, manual login required")
 
         if browser.is_headless():
             context.push_message("info", "EnsureAuth: Switching to visible browser for login")
@@ -65,9 +86,17 @@ class EnsureAuthNode(BaseNode):
         self._save_cookies(browser, cookie_file, context)
         context.push_message("info", "EnsureAuth: Cookies saved successfully")
 
-        if not browser.is_headless():
+        stay_visible = step_config.get('stay_visible', False)
+
+        if stay_visible:
+            context.push_message("info", "EnsureAuth: Staying in visible mode (debug mode)")
+        elif not browser.is_headless():
             context.push_message("info", "EnsureAuth: Switching back to headless mode")
             browser.switch_to_headless()
+            context.push_message("info", "EnsureAuth: Reloading cookies into headless session")
+            browser.visit_page(target_url, context)
+            time.sleep(0.5)
+            self._try_load_cookies(browser, cookie_file, context)
 
         context.push_message("info", "EnsureAuth: Authentication complete")
         return None
@@ -149,3 +178,19 @@ class EnsureAuthNode(BaseNode):
 
         if not show_dialog():
             context.push_message("warning", "EnsureAuth: User cancelled manual login")
+
+    def _ask_user_auth_status(self, context):
+        def show_dialog():
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes('-topmost', True)
+            result = messagebox.askyesno(
+                "Verify Login Status",
+                "No success selector configured.\n\n"
+                "Are you already logged in to the site?\n"
+                "(Click 'Yes' if you see your profile/avatar)"
+            )
+            root.destroy()
+            return result
+
+        return show_dialog()

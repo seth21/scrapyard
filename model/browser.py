@@ -1,5 +1,7 @@
-from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import time
 from urllib.parse import urljoin
@@ -19,38 +21,12 @@ class SeleniumDriver:
     def start_driver(self, headless=True):
         if not self.driver:
             options = Options()
-            if headless:
-                options.add_argument("--headless")
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
-            options.add_argument(
-                "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-            )
-            options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            options.add_experimental_option("useAutomationExtension", False)
-            options.add_argument("--disable-blink-features=AutomationControlled")
 
-            self.driver = webdriver.Chrome(options=options)
-            self._stealth_browser()
-
-    def _stealth_browser(self):
-        self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-            "source": """
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-                Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
-                const getParameter = WebGLRenderingContext.getParameter;
-                WebGLRenderingContext.prototype.getParameter = function(parameter) {
-                    if (parameter === 37445) return 'Intel Open Source Technology Center';
-                    if (parameter === 37446) return 'Mesa DRI Intel(R) Ivybridge Mobile';
-                    return getParameter(parameter);
-                };
-                window.navigator.chrome = { runtime: {} };
-                window.navigator.permissions = { query: (x) => Promise.resolve({ state: Notification.permission }) };
-            """
-        })
+            driver_path = ChromeDriverManager().install()
+            self.driver = uc.Chrome(options=options, headless=headless, driver_executable_path=driver_path)
 
     def stop_driver(self):
         if self.driver:

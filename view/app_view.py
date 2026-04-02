@@ -159,6 +159,7 @@ class View(ct.CTk):
             self.create_prop_entry("Login URL (optional):", "login_url", data)
             self.create_prop_entry("Success Selector (optional):", "success_selector", data)
             self.create_prop_entry("Cookie Name (optional):", "cookie_name", data)
+            self.create_prop_checkbox("Stay Visible:", "stay_visible", data)
 
     def create_prop_entry(self, label_text, key, data_dict):
         """Helper to create a label + entry that auto-updates the dictionary"""
@@ -301,6 +302,7 @@ class View(ct.CTk):
                 step_config['login_url'] = data.get('login_url', '')
                 step_config['success_selector'] = data.get('success_selector', '')
                 step_config['cookie_name'] = data.get('cookie_name', '')
+                step_config['stay_visible'] = data.get('stay_visible', False)
             steps.append(step_config)
         return steps
 

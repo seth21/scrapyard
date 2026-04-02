@@ -60,7 +60,7 @@ class ScraperEngine:
                 # DO NOT refresh, or we lose our place in the list.
                 current_soup = context_soup
             action_type = step_config.get('type')
-
+            print(browser.driver.page_source)
             # 1. Get the correct class (e.g., ExtractAction)
             NodeClass = get_node_class(action_type)
 
