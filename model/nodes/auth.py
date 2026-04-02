@@ -18,6 +18,7 @@ class EnsureAuthNode(BaseNode):
         login_url = step_config.get('login_url', '')
         success_selector = step_config.get('success_selector', '')
         cookie_name = step_config.get('cookie_name', '')
+        stay_visible = step_config.get('stay_visible', False)
 
         target_url = login_url if login_url else engine.current_url if hasattr(engine, 'current_url') else None
         if not target_url:
@@ -60,12 +61,17 @@ class EnsureAuthNode(BaseNode):
             context.push_message("info", "EnsureAuth: Please verify login status in the browser")
             if self._ask_user_auth_status(context):
                 context.push_message("info", "EnsureAuth: User confirmed already logged in")
-                context.push_message("info", "EnsureAuth: Switching back to headless mode")
-                browser.switch_to_headless()
-                browser.visit_page(target_url, context)
-                time.sleep(0.5)
-                self._try_load_cookies(browser, cookie_file, context)
-                browser.visit_page(target_url, context)
+                if stay_visible:
+                    context.push_message("info", "EnsureAuth: Staying in visible mode (debug mode)")
+                else:
+                    context.push_message("info", "EnsureAuth: Switching back to headless mode")
+                    browser.switch_to_headless()
+                    context.push_message("info", "EnsureAuth: Applying stealth patches")
+                    browser._apply_stealth_patches()
+                    context.push_message("info", "EnsureAuth: Reloading cookies into headless session")
+                    browser.visit_page(target_url, context)
+                    self._try_load_cookies(browser, cookie_file, context)
+                    browser.reload_with_stealth(target_url, context)
                 return None
             context.push_message("warning", "EnsureAuth: User reported not logged in")
         else:
@@ -86,17 +92,17 @@ class EnsureAuthNode(BaseNode):
         self._save_cookies(browser, cookie_file, context)
         context.push_message("info", "EnsureAuth: Cookies saved successfully")
 
-        stay_visible = step_config.get('stay_visible', False)
-
         if stay_visible:
             context.push_message("info", "EnsureAuth: Staying in visible mode (debug mode)")
         elif not browser.is_headless():
             context.push_message("info", "EnsureAuth: Switching back to headless mode")
             browser.switch_to_headless()
+            context.push_message("info", "EnsureAuth: Applying stealth patches")
+            browser._apply_stealth_patches()
             context.push_message("info", "EnsureAuth: Reloading cookies into headless session")
             browser.visit_page(target_url, context)
-            time.sleep(0.5)
             self._try_load_cookies(browser, cookie_file, context)
+            browser.reload_with_stealth(target_url, context)
 
         context.push_message("info", "EnsureAuth: Authentication complete")
         return None

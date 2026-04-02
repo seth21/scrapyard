@@ -1,5 +1,6 @@
 from model.app_model import Model
 from model.context import Context
+from model.browser import SeleniumDriver
 from view.app_view import View
 import threading
 import queue
@@ -47,6 +48,8 @@ class Controller:
         self.model.exporter.export_to_excel(data, self.context)
 
     def _run_thread(self, steps, url):
+        if not self.model.driver.is_alive():
+            self.model.driver = SeleniumDriver()
         data = self.model.engine.run(steps, url, self.model.driver, self.context)
         self.scraped_data = data  # Store for export
         self.view.scrape_button.configure(

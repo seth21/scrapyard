@@ -13,6 +13,7 @@ class SeleniumDriver:
     def __init__(self, headless=True):
         self.driver = None
         self._headless = headless
+        self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
         self.start_driver(headless)
 
     def is_headless(self):
@@ -24,9 +25,45 @@ class SeleniumDriver:
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-blink-features=AutomationControlled")
+
+            if headless:
+                options.add_argument("--headless=new")
+
+            options.add_argument(f"--user-agent={self.user_agent}")
 
             driver_path = ChromeDriverManager().install()
             self.driver = uc.Chrome(options=options, headless=headless, driver_executable_path=driver_path)
+            self._apply_stealth_patches()
+
+    def _apply_stealth_patches(self):
+        try:
+            self.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                "source": """
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    })
+                """
+            })
+            self.driver.execute_cdp_cmd("Network.setUserAgentOverride", {
+                "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
+            })
+        except Exception:
+            pass
+
+    def reload_with_stealth(self, url, ctx):
+        self._apply_stealth_patches()
+        self.visit_page(url, ctx)
+
+    def is_alive(self):
+        try:
+            if self.driver:
+                self.driver.current_url
+                return True
+        except Exception:
+            pass
+        return False
 
     def stop_driver(self):
         if self.driver:
