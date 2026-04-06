@@ -1,7 +1,8 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 import customtkinter as ct
 from typing import Callable
+import json
 
 ct.set_appearance_mode("system")
 ct.set_default_color_theme("blue")
@@ -217,7 +218,7 @@ class View(ct.CTk):
             parent_id = selected[0]
             # Can only add children to Root, Loop, or Visit
             p_data = self.step_map[parent_id]
-            if p_data['type'] in ['extract', 'click', 'scroll']:
+            if p_data['type'] in ['extract', 'click', 'scroll', 'ensure_auth']:
                 # If Extract, Scroll or Click selected, add to its parent instead
                 parent_id = self.tree.parent(parent_id)
         else:
@@ -265,6 +266,20 @@ class View(ct.CTk):
         self.progress_bar = ct.CTkProgressBar(self.right_frame)
         self.progress_bar.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         self.progress_bar.set(0)
+
+        # Import/Export Workflow Buttons
+        self.button_frame = ct.CTkFrame(self.right_frame, fg_color="transparent")
+        self.button_frame.grid(row=3, column=0, padx=20, pady=(0, 10), sticky="ew")
+        self.button_frame.grid_columnconfigure(0, weight=1)
+        self.button_frame.grid_columnconfigure(1, weight=1)
+
+        self.import_wf_button = ct.CTkButton(self.button_frame, text="Import Workflow", fg_color="#456c9c",
+                                          command=self.import_workflow)
+        self.import_wf_button.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+
+        self.export_wf_button = ct.CTkButton(self.button_frame, text="Export Workflow", fg_color="#456c9c",
+                                          command=self.export_workflow)
+        self.export_wf_button.grid(row=0, column=1, padx=(5, 0), sticky="ew")
 
     def build_config_recursive(self, parent_id):
         """Walks the tree to build the JSON config for the engine"""
@@ -321,3 +336,115 @@ class View(ct.CTk):
         self.console.insert("end", str.upper(msgtype)+": "+message + "\n", msgtype)
         self.console.see("end")  # Auto-scroll to bottom
         self.console.configure(state="disabled")
+
+    def import_workflow(self):
+        file_path = filedialog.askopenfilename(
+            title="Import Workflow",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+
+            url = data.get('url', '')
+            steps = data.get('steps', [])
+
+            self.url_entry.delete(0, "end")
+            self.url_entry.insert(0, url)
+
+            for child_id in self.tree.get_children(self.root_id):
+                self.tree.delete(child_id)
+                del self.step_map[child_id]
+
+            for step in steps:
+                self._add_step_from_json(self.root_id, step)
+
+            self.log_message(f"Workflow imported from {file_path}")
+
+        except Exception as e:
+            self.log_message(f"Error importing workflow: {e}")
+
+    def _add_step_from_json(self, parent_id, step_data):
+        step_type = step_data.get('type')
+        text_map = {
+            "extract": "📄 Extract Data", "loop": " ↩️ For Each Element",
+            "visit": "🔗 Visit Link", "repeat": "🔁 Repeat",
+            "click": "👇 Click", "scroll": "⚙ Scroll", "ensure_auth": "🔐 Ensure Auth"
+        }
+        display_text = text_map.get(step_type, f"📄 {step_type}")
+
+        new_id = self.tree.insert(parent_id, "end", text=display_text, open=True)
+
+        data = {
+            "type": step_type,
+            "selector": step_data.get('selector', ''),
+            "name": step_data.get('name', 'Column 1'),
+            "attr": step_data.get('attr', ''),
+            "children": []
+        }
+
+        if step_type in ['loop', 'visit', 'repeat']:
+            for child_step in step_data.get('children', []):
+                self._add_step_from_json(new_id, child_step)
+            data['children'] = step_data.get('children', [])
+
+        if step_type == 'loop':
+            data['limit'] = step_data.get('limit', 0)
+
+        if step_type == 'extract':
+            data['sep'] = step_data.get('sep', ',')
+            data['multi'] = step_data.get('multi', 0)
+            data['formatting'] = step_data.get('formatting', 0)
+            data['discard_duplicates'] = step_data.get('discard_duplicates', 0)
+
+        if step_type == 'repeat':
+            data['mode'] = step_data.get('mode', 'fixed')
+            data['max_iter'] = step_data.get('max_iter', 0)
+            data['count_value'] = step_data.get('count_value', 0)
+
+        if step_type == 'click':
+            data['wait_strategy'] = step_data.get('wait_strategy', 'none')
+            data['wait_selector'] = step_data.get('wait_selector', '')
+            data['wait_timeout'] = step_data.get('wait_timeout', 10)
+            data['delay_after'] = step_data.get('delay_after', 0.5)
+            data['optional'] = step_data.get('optional', False)
+
+        if step_type == 'scroll':
+            data['wait_strategy'] = step_data.get('wait_strategy', 'dom_change')
+            data['wait_timeout'] = step_data.get('wait_timeout', 5)
+            data['mode'] = step_data.get('mode', 'bottom')
+
+        if step_type == 'ensure_auth':
+            data['login_url'] = step_data.get('login_url', '')
+            data['success_selector'] = step_data.get('success_selector', '')
+            data['cookie_name'] = step_data.get('cookie_name', '')
+            data['stay_visible'] = step_data.get('stay_visible', False)
+
+        self.step_map[new_id] = data
+
+    def export_workflow(self):
+        url = self.url_entry.get()
+        steps = self.build_config_recursive(self.root_id)
+
+        workflow_data = {
+            "url": url,
+            "steps": steps
+        }
+
+        file_path = filedialog.asksaveasfilename(
+            title="Export Workflow",
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, 'w') as f:
+                json.dump(workflow_data, f, indent=2)
+            self.log_message(f"Workflow exported to {file_path}")
+        except Exception as e:
+            self.log_message(f"Error exporting workflow: {e}")
