@@ -263,7 +263,7 @@ class View(ct.CTk):
         self.console.tag_config("done", foreground="green")
 
         # Progress Bar
-        self.progress_bar = ct.CTkProgressBar(self.right_frame)
+        self.progress_bar = ct.CTkProgressBar(self.right_frame, mode="indeterminate")
         self.progress_bar.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         self.progress_bar.set(0)
 
@@ -336,6 +336,16 @@ class View(ct.CTk):
         self.console.insert("end", str.upper(msgtype)+": "+message + "\n", msgtype)
         self.console.see("end")  # Auto-scroll to bottom
         self.console.configure(state="disabled")
+
+    def start_progress(self):
+        """Start the indeterminate progress bar animation"""
+        self.progress_bar.set(0)
+        self.progress_bar.start()
+
+    def stop_progress(self):
+        """Stop the progress bar animation"""
+        self.progress_bar.stop()
+        self.progress_bar.set(0)
 
     def import_workflow(self):
         file_path = filedialog.askopenfilename(

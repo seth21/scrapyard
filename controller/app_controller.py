@@ -35,6 +35,7 @@ class Controller:
 
         # Run in Thread
         if not self.running:
+            self.view.start_progress()
             threading.Thread(target=self._run_thread, args=(steps, url), daemon=True).start()
             self.view.scrape_button.configure(text="Stop Scraper", fg_color="red")
             self.running = True
@@ -52,6 +53,7 @@ class Controller:
             self.model.driver = SeleniumDriver()
         data = self.model.engine.run(steps, url, self.model.driver, self.context)
         self.scraped_data = data  # Store for export
+        self.view.stop_progress()
         self.view.scrape_button.configure(
             text="Run Scraper",
             fg_color=self.view.scrape_button_default_color,
